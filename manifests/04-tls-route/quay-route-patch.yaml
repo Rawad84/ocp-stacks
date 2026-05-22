@@ -1,0 +1,12 @@
+# Optional — patch the operator-managed Route to set a custom hostname.
+# Apply only if a custom FQDN is needed; otherwise the operator assigns one.
+# Usage: oc patch route quay-registry-quay -n quay-enterprise --patch-file manifests/04-tls-route/quay-route-patch.yaml
+#
+# Replace <CUSTOM_HOSTNAME> with your desired FQDN before applying.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: quay-registry-quay
+  namespace: quay-enterprise
+spec:
+  host: <CUSTOM_HOSTNAME>

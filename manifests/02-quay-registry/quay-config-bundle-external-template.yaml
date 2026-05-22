@@ -1,0 +1,56 @@
+# External-access variant of the config bundle template.
+# Used by scripts/deploy-external.sh when push/pull must work from outside the cluster.
+#
+# Differences from quay-config-bundle-template.yaml:
+#   - NOOBAA_S3_HOST uses the external NooBaa S3 route (resolvable outside cluster)
+#   - NOOBAA_S3_PORT is always 443
+#   - Includes the cluster router CA cert so Quay trusts the external route's TLS cert
+#
+# Variables substituted at deploy time:
+#   NOOBAA_S3_HOST         — external NooBaa S3 route hostname
+#   NOOBAA_S3_PORT         — always 443
+#   BUCKET_NAME            — from OBC ConfigMap: BUCKET_NAME
+#   AWS_ACCESS_KEY_ID      — from OBC Secret:    AWS_ACCESS_KEY_ID
+#   AWS_SECRET_ACCESS_KEY  — from OBC Secret:    AWS_SECRET_ACCESS_KEY
+#   QUAY_SUPERUSER_USERNAME / QUAY_SUPERUSER_PASSWORD / QUAY_SUPERUSER_EMAIL — from env.sh
+apiVersion: v1
+kind: Secret
+metadata:
+  name: quay-config-bundle
+  namespace: quay-enterprise
+type: Opaque
+stringData:
+  config.yaml: |
+    FEATURE_USER_INITIALIZE: true
+    FEATURE_USER_CREATION: false
+    BROWSER_API_CALLS_XHR_ONLY: false
+
+    SUPER_USERS:
+      - ${QUAY_SUPERUSER_USERNAME}
+
+    DISTRIBUTED_STORAGE_DEFAULT_LOCATIONS:
+      - default
+    DISTRIBUTED_STORAGE_PREFERENCE:
+      - default
+    DISTRIBUTED_STORAGE_CONFIG:
+      default:
+        # External NooBaa S3 route — resolvable from outside the cluster.
+        # Quay's blob redirect URLs will use this hostname so external clients
+        # (podman, skopeo, Jenkins) can fetch layers without cluster DNS access.
+        # The router CA cert below is required to trust the external route's TLS cert.
+        - RHOCSStorage
+        - hostname: ${NOOBAA_S3_HOST}
+          port: ${NOOBAA_S3_PORT}
+          is_secure: true
+          access_key: ${AWS_ACCESS_KEY_ID}
+          secret_key: ${AWS_SECRET_ACCESS_KEY}
+          bucket_name: ${BUCKET_NAME}
+          storage_path: /datastorage/registry
+
+    PREFERRED_URL_SCHEME: https
+
+  # Cluster router CA — required so Quay trusts the self-signed cert on the
+  # external NooBaa S3 route (s3-openshift-storage.apps.*).
+  # The Quay Operator installs any extra_ca_cert_* keys as trusted CA certs.
+  extra_ca_cert_router-ca.crt: |
+${ROUTER_CA_CERT}

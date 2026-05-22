@@ -1,0 +1,13 @@
+# Quay Operator installed cluster-wide (openshift-operators already has a global OperatorGroup).
+# Verify channel: oc get packagemanifest quay-operator -n openshift-marketplace -o jsonpath='{.status.channels[*].name}'
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: quay-operator
+  namespace: openshift-operators
+spec:
+  channel: stable-3.16
+  name: quay-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic

@@ -1,0 +1,20 @@
+# Claude Code local settings
+.claude/
+
+# Deployment logs — may contain secrets extracted from cluster
+*.log
+
+# Docs folder — kept locally, not tracked in git
+docs/
+
+# All markdown files except README.md
+*.md
+!README.md
+
+# env.sh.example is committed; env.sh.local can override with real credentials
+scripts/env.sh.local
+
+# Kubeconfig and auth files
+kubeconfig
+auth/
+*.kubeconfig

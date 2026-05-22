@@ -1,0 +1,9 @@
+# Holds runtime values needed by the init Job.
+# Created by deploy.sh after the Quay Route is available.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quay-init-config
+  namespace: quay-enterprise
+data:
+  QUAY_ROUTE: ${QUAY_ROUTE}

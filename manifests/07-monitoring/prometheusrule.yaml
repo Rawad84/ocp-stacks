@@ -1,0 +1,57 @@
+# Custom alerting rules for Quay on top of the operator-managed ServiceMonitor.
+# Requires the openshift-monitoring stack and the QuayRegistry monitoring component to be enabled.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: quay-alerts
+  namespace: quay-enterprise
+  labels:
+    app.kubernetes.io/part-of: quay
+spec:
+  groups:
+    - name: quay.availability
+      rules:
+        - alert: QuayRegistryDown
+          expr: |
+            absent(up{job=~"quay-registry.*", namespace="quay-enterprise"} == 1)
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Quay registry pods are not scraping"
+            description: "No Quay registry pods have been scraped for 5 minutes in namespace quay-enterprise."
+
+        - alert: QuayHighErrorRate
+          expr: |
+            rate(quay_registry_http_requests_total{status=~"5..", namespace="quay-enterprise"}[5m]) > 0.05
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Quay HTTP 5xx error rate elevated"
+            description: "More than 5% of Quay HTTP requests are returning 5xx errors."
+
+    - name: quay.storage
+      rules:
+        - alert: QuayStorageBucketUnreachable
+          expr: |
+            quay_registry_storage_requests_total{result="error", namespace="quay-enterprise"} > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Quay cannot reach storage bucket"
+            description: "Quay is reporting storage errors — check NooBaa OBC and S3 connectivity."
+
+    - name: quay.database
+      rules:
+        - alert: QuayDatabaseConnectionPoolExhausted
+          expr: |
+            quay_registry_db_pool_connections_in_use{namespace="quay-enterprise"}
+            / quay_registry_db_pool_connections_total{namespace="quay-enterprise"} > 0.9
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Quay database connection pool near capacity"
+            description: "More than 90% of DB connections are in use. Consider scaling the database."

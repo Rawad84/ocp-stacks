@@ -1,0 +1,59 @@
+# This file is a reference template only — it is NOT applied directly.
+# The deploy script (scripts/deploy.sh) generates the actual Secret by substituting
+# runtime values from the OBC ConfigMap/Secret into this template.
+#
+# Variables substituted at deploy time:
+#   NOOBAA_S3_HOST         — from OBC ConfigMap: BUCKET_HOST
+#   NOOBAA_S3_PORT         — from OBC ConfigMap: BUCKET_PORT
+#   BUCKET_NAME            — from OBC ConfigMap: BUCKET_NAME
+#   AWS_ACCESS_KEY_ID      — from OBC Secret:    AWS_ACCESS_KEY_ID
+#   AWS_SECRET_ACCESS_KEY  — from OBC Secret:    AWS_SECRET_ACCESS_KEY
+#   QUAY_SUPERUSER_USERNAME / QUAY_SUPERUSER_PASSWORD / QUAY_SUPERUSER_EMAIL — from env.sh
+apiVersion: v1
+kind: Secret
+metadata:
+  name: quay-config-bundle
+  namespace: quay-enterprise
+type: Opaque
+stringData:
+  config.yaml: |
+    FEATURE_USER_INITIALIZE: true
+    FEATURE_USER_CREATION: false
+    BROWSER_API_CALLS_XHR_ONLY: false
+
+    SUPER_USERS:
+      - ${QUAY_SUPERUSER_USERNAME}
+
+    DISTRIBUTED_STORAGE_DEFAULT_LOCATIONS:
+      - default
+    DISTRIBUTED_STORAGE_PREFERENCE:
+      - default
+    DISTRIBUTED_STORAGE_CONFIG:
+      default:
+        # --- ODF / NooBaa / MCG (this deployment) ---
+        # Use RHOCSStorage for ODF MCG. It forces path-style S3 addressing which
+        # NooBaa requires. S3Storage uses virtual-hosted style and will fail with
+        # "Access Key not found" against NooBaa.
+        - RHOCSStorage
+        - hostname: ${NOOBAA_S3_HOST}
+          port: ${NOOBAA_S3_PORT}
+          is_secure: true
+          access_key: ${AWS_ACCESS_KEY_ID}
+          secret_key: ${AWS_SECRET_ACCESS_KEY}
+          bucket_name: ${BUCKET_NAME}
+          storage_path: /datastorage/registry
+
+        # --- AWS S3 or S3-compatible storage (e.g. MinIO) ---
+        # Uncomment and replace the RHOCSStorage block above with this block.
+        # S3Storage uses virtual-hosted style addressing — suitable for AWS S3
+        # and any provider that supports bucket-name.hostname DNS resolution.
+        # - S3Storage
+        # - endpoint_url: https://<your-s3-endpoint>
+        #   s3_access_key: <access-key>
+        #   s3_secret_key: <secret-key>
+        #   s3_bucket: <bucket-name>
+        #   storage_path: /datastorage/registry
+        #   s3_region: us-east-1   # set if using AWS S3
+
+    # TLS is managed by the Quay Operator via the Route.
+    PREFERRED_URL_SCHEME: https

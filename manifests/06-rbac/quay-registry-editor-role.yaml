@@ -1,0 +1,13 @@
+# Role for CI/CD service accounts that need to read QuayRegistry status.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: quay-registry-reader
+  namespace: quay-enterprise
+rules:
+  - apiGroups: ["quay.redhat.com"]
+    resources: ["quayregistries"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps"]
+    verbs: ["get", "list"]

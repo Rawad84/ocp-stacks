@@ -1,0 +1,55 @@
+# Sandbox flavor — for clusters with limited worker node capacity (3x 3.5 CPU / 14Gi workers).
+#
+# Differences from baseline quay-registry.yaml:
+#   - clair/clairpostgres: managed: false  (saves ~4 CPU + 4Gi requests)
+#   - horizontalpodautoscaler: managed: false  (prevents operator scaling beyond 2 replicas)
+#   - quay component: memory request overridden from 8Gi -> 3Gi per pod
+#   - postgres component: memory request overridden from 2Gi -> 1Gi
+#
+# To switch back to full deployment: apply quay-registry.yaml instead.
+apiVersion: quay.redhat.com/v1
+kind: QuayRegistry
+metadata:
+  name: quay-registry
+  namespace: quay-enterprise
+spec:
+  configBundleSecret: quay-config-bundle
+  components:
+    - kind: objectstorage
+      managed: false
+    - kind: quay
+      managed: true
+      overrides:
+        resources:
+          requests:
+            cpu: 500m
+            memory: 3Gi
+          limits:
+            cpu: "2"
+            memory: 6Gi
+    - kind: postgres
+      managed: true
+      overrides:
+        resources:
+          requests:
+            cpu: 250m
+            memory: 1Gi
+          limits:
+            cpu: "1"
+            memory: 2Gi
+    - kind: clair
+      managed: false
+    - kind: clairpostgres
+      managed: false
+    - kind: redis
+      managed: true
+    - kind: horizontalpodautoscaler
+      managed: false
+    - kind: route
+      managed: true
+    - kind: monitoring
+      managed: true
+    - kind: tls
+      managed: true
+    - kind: mirror
+      managed: false

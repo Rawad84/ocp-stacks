@@ -1,0 +1,13 @@
+# ODF operator — MCG-only deployment (no Ceph OSDs).
+# Verify channel availability: oc get packagemanifest odf-operator -n openshift-marketplace -o jsonpath='{.status.channels[*].name}'
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: odf-operator
+  namespace: openshift-storage
+spec:
+  channel: stable-4.20
+  name: odf-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic

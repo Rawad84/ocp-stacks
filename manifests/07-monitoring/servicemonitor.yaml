@@ -1,0 +1,24 @@
+# Supplemental ServiceMonitor for any Quay component not covered by the operator-managed one.
+# The Quay Operator creates its own ServiceMonitor when monitoring: managed: true.
+# Apply this only if you need to scrape an additional endpoint or override scrape settings.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: quay-registry-extra
+  namespace: quay-enterprise
+  labels:
+    app.kubernetes.io/part-of: quay
+spec:
+  namespaceSelector:
+    matchNames:
+      - quay-enterprise
+  selector:
+    matchLabels:
+      quay-component: quay-app
+  endpoints:
+    - port: https
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: true
+      interval: 30s
+      path: /metrics

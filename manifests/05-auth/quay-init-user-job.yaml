@@ -1,0 +1,52 @@
+# One-shot Job that seeds the initial superuser via the Quay API.
+# The OAuth token returned by /user/initialize is printed to stdout.
+# deploy.sh captures it and saves it to the quay-admin-token Secret.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: quay-init-superuser
+  namespace: quay-enterprise
+  labels:
+    app.kubernetes.io/part-of: quay
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: init
+          image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "Waiting for Quay API..."
+              until curl -sk "https://${QUAY_ROUTE}/api/v1/discovery" | grep -q "version"; do sleep 5; done
+              echo "Seeding superuser ${QUAY_USER}..."
+              curl -sk -X POST "https://${QUAY_ROUTE}/api/v1/user/initialize" \
+                -H "Content-Type: application/json" \
+                -d "{\"username\":\"${QUAY_USER}\",\"password\":\"${QUAY_PASSWORD}\",\"email\":\"${QUAY_EMAIL}\",\"access_token\":true}"
+              echo ""
+              echo "Done."
+          env:
+            - name: QUAY_ROUTE
+              valueFrom:
+                configMapKeyRef:
+                  name: quay-init-config
+                  key: QUAY_ROUTE
+            - name: QUAY_USER
+              valueFrom:
+                secretKeyRef:
+                  name: quay-init-credentials
+                  key: username
+            - name: QUAY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: quay-init-credentials
+                  key: password
+            - name: QUAY_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: quay-init-credentials
+                  key: email

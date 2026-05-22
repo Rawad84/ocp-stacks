@@ -1,0 +1,17 @@
+# MCG-only StorageCluster — activates only the NooBaa/MCG sub-operator.
+# In ODF 4.16+, sub-operator deployments (noobaa-operator, rook-ceph-operator, etc.)
+# are kept at 0 replicas until a StorageCluster CR is present.
+# reconcileStrategy: standalone tells ODF to bring up ONLY MCG — no Ceph OSDs.
+# This CR auto-creates a NooBaa CR named "noobaa" in openshift-storage using the
+# cluster's default StorageClass for its DB and core PVCs.
+apiVersion: ocs.openshift.io/v1
+kind: StorageCluster
+metadata:
+  name: ocs-storagecluster
+  namespace: openshift-storage
+  annotations:
+    uninstall.ocs.openshift.io/cleanup-policy: delete
+    uninstall.ocs.openshift.io/mode: graceful
+spec:
+  multiCloudGateway:
+    reconcileStrategy: standalone

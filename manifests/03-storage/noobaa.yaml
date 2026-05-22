@@ -1,0 +1,35 @@
+# REFERENCE ONLY — NOT applied by deploy.sh.
+#
+# In ODF 4.16+, the NooBaa CR is auto-created and managed by the ODF operator
+# when a StorageCluster with multiCloudGateway.reconcileStrategy=standalone is applied.
+# Applying this CR manually would conflict with the operator-managed one.
+#
+# The auto-created NooBaa CR is named "noobaa" in openshift-storage and uses the
+# cluster default StorageClass for its DB and core PVCs.
+#
+# To customize NooBaa resources after deployment, patch the operator-managed CR:
+#   oc patch noobaa noobaa -n openshift-storage --type=merge -p '...'
+#
+# Kept here as documentation of the NooBaa spec fields.
+apiVersion: noobaa.io/v1alpha1
+kind: NooBaa
+metadata:
+  name: noobaa
+  namespace: openshift-storage
+spec:
+  dbStorageClassName: gp3-csi
+  coreStorageClassName: gp3-csi
+  dbResources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+  coreResources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
